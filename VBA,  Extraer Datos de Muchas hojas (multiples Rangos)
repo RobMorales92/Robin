@@ -1,0 +1,69 @@
+Sub ConsolidarDatosMultiplesRangos()
+    Dim wsConsolidado As Worksheet
+    Dim ws As Worksheet
+    Dim rangosUsuario As String
+    Dim rangos() As String
+    Dim rangoDatos As Range
+    Dim ultimaColumnaConsolidado As Long
+    Dim i As Integer
+    Dim respuesta As VbMsgBoxResult
+
+    ' Crear o limpiar la hoja Consolidado
+    On Error Resume Next
+    Set wsConsolidado = ThisWorkbook.Sheets("Consolidado")
+    If wsConsolidado Is Nothing Then
+        Set wsConsolidado = ThisWorkbook.Sheets.Add
+        wsConsolidado.Name = "Consolidado"
+    Else
+        wsConsolidado.Cells.Clear
+    End If
+    On Error GoTo 0
+
+    ' Inicializar variables
+    ultimaColumnaConsolidado = 1 ' Inicia en la primera columna
+
+    ' Preguntar rangos al usuario
+    rangosUsuario = InputBox("Ingresa los rangos que deseas extraer separados por coma (ejemplo: A1:D100, F1:H50):", "Seleccionar Rangos")
+
+    ' Validar entrada
+    If rangosUsuario = "" Then
+        MsgBox "No ingresaste ningún rango. La consolidación ha sido cancelada.", vbExclamation, "Operación Cancelada"
+        Exit Sub
+    End If
+
+    ' Dividir los rangos ingresados
+    rangos = Split(rangosUsuario, ",")
+
+    ' Iterar por todas las hojas del libro
+    For Each ws In ThisWorkbook.Sheets
+        If ws.Name <> "Consolidado" Then
+            For i = LBound(rangos) To UBound(rangos)
+                On Error Resume Next
+                ' Intentar capturar el rango ingresado por el usuario
+                Set rangoDatos = ws.Range(Trim(rangos(i)))
+                On Error GoTo 0
+
+                ' Verificar si el rango es válido
+                If Not rangoDatos Is Nothing Then
+                    ' Copiar encabezados en la fila 1
+                    wsConsolidado.Cells(1, ultimaColumnaConsolidado).Resize(1, rangoDatos.Columns.Count).Value = rangoDatos.Rows(1).Value
+
+                    ' Copiar datos debajo de los encabezados
+                    wsConsolidado.Cells(2, ultimaColumnaConsolidado).Resize(rangoDatos.Rows.Count - 1, rangoDatos.Columns.Count).Value = _
+                        rangoDatos.Offset(1, 0).Resize(rangoDatos.Rows.Count - 1, rangoDatos.Columns.Count).Value
+
+                    ' Actualizar última columna consolidada
+                    ultimaColumnaConsolidado = ultimaColumnaConsolidado + rangoDatos.Columns.Count
+                Else
+                    ' Avisar si el rango no es válido para una hoja
+                    respuesta = MsgBox("El rango ingresado (" & Trim(rangos(i)) & ") no es válido para la hoja: " & ws.Name & "." & vbNewLine & _
+                                       "¿Deseas continuar con las demás hojas?", vbYesNo + vbExclamation, "Rango Inválido")
+                    If respuesta = vbNo Then Exit Sub
+                End If
+            Next i
+        End If
+    Next ws
+
+    ' Mensaje final
+    MsgBox "Consolidación completada. Los datos están en la hoja 'Consolidado'.", vbInformation, "Proceso Terminado"
+End Sub
