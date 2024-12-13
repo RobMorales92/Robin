@@ -1,0 +1,41 @@
+Sub ConsolidarDatos()
+    Dim wsConsolidado As Worksheet
+    Dim ws As Worksheet
+    Dim ultimaFilaConsolidado As Long
+    Dim ultimaFilaHoja As Long
+    Dim rangoDatos As Range
+
+    ' Crear o limpiar la hoja Consolidado
+    On Error Resume Next
+    Set wsConsolidado = ThisWorkbook.Sheets("Consolidado")
+    If wsConsolidado Is Nothing Then
+        Set wsConsolidado = ThisWorkbook.Sheets.Add
+        wsConsolidado.Name = "Consolidado"
+    Else
+        wsConsolidado.Cells.Clear
+    End If
+    On Error GoTo 0
+
+    ' Encabezados en Consolidado
+    wsConsolidado.Cells(1, 1).Value = "Hoja"
+    wsConsolidado.Cells(1, 2).Value = "Datos"
+
+    ' Consolidar datos de todas las hojas
+    ultimaFilaConsolidado = 2
+    For Each ws In ThisWorkbook.Sheets
+        If ws.Name <> "Consolidado" Then
+            ultimaFilaHoja = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+            Set rangoDatos = ws.Range("A2:C" & ultimaFilaHoja)
+            
+            ' Copiar datos
+            rangoDatos.Copy
+            wsConsolidado.Cells(ultimaFilaConsolidado, 2).PasteSpecial Paste:=xlPasteValues
+            wsConsolidado.Cells(ultimaFilaConsolidado, 1).Resize(rangoDatos.Rows.Count, 1).Value = ws.Name
+            
+            ' Actualizar última fila en Consolidado
+            ultimaFilaConsolidado = wsConsolidado.Cells(wsConsolidado.Rows.Count, 1).End(xlUp).Row + 1
+        End If
+    Next ws
+
+    MsgBox "Consolidación completada.", vbInformation, "Listo"
+End Sub
